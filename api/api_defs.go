@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -25,12 +26,22 @@ func ClientCreate(c *gin.Context) {
 		return
 	}
 
-	res := db.Connection.Create(&data)
+	client, err := models.CreateClient(data.Name, data.PayRate)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	res := db.Connection.Create(&client)
+
 	if res.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{
+		"client": client,
+	})
 }
 
 func ClientAddHours(c *gin.Context) {
@@ -54,6 +65,8 @@ func ClientAddHours(c *gin.Context) {
 
 	client.TimeSeconds += uint(timeSeconds)
 
+	db.Connection.Save(&client)
+
 	c.JSON(http.StatusOK, gin.H{
 		"client": client,
 	})
@@ -68,24 +81,28 @@ func ClientAddInvoice(c *gin.Context) {
 
 	if res.Error != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
+		log.Println(res.Error)
 		return
 	}
 
-	invoice, err := models.CreateInvoice(&client, db.Connection)
+	invoice, err := models.CreateInvoice(&client)
 
+	res = db.Connection.Create(&invoice)
+	if res.Error != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		log.Println(res.Error)
+		return
+	}
+
+	err = db.Connection.Model(&client).Association("Invoices").Append(&invoice)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
+		log.Println(err)
 		return
 	}
 
 	client.TimeSeconds = 0
 	db.Connection.Save(&client)
-
-	err = db.Connection.Model(&client).Association("Invoice").Append(&invoice)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"invoice": invoice,

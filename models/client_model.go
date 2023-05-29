@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"errors"
+)
 
 type Client struct {
 	JsonModel
@@ -10,17 +12,15 @@ type Client struct {
 	Invoices    []Invoice
 }
 
-func CreateClient(name string, rate float32, db *gorm.DB) (Client, error) {
+func CreateClient(name string, rate float32) (Client, error) {
+	if (name == "") || (rate < 0) {
+		return Client{}, errors.New("invalid client data")
+	}
+
 	client := Client{
 		Name:        name,
 		TimeSeconds: 0,
 		PayRate:     rate,
-	}
-
-	res := db.Create(&client)
-
-	if res.Error != nil {
-		return Client{}, res.Error
 	}
 
 	return client, nil

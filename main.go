@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/slinky55/emfic/router"
 	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/slinky55/emfic/api"
 	"github.com/slinky55/emfic/db"
 	"github.com/slinky55/emfic/models"
 )
@@ -35,16 +35,7 @@ func main() {
 		return
 	}
 
-	r := gin.Default()
-
-	gApi := r.Group("/api")
-	{
-		gApi.GET("/ping", api.Ping)
-
-		gApi.POST("/client/create", api.ClientCreate)
-		gApi.PATCH("/client/:id/add/hours/:timeSeconds", api.ClientAddHours)
-		gApi.PATCH("/client/:id/add/invoice", api.ClientAddInvoice)
-	}
+	r := router.Make()
 
 	err = r.Run(":7100")
 	if err != nil {
